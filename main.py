@@ -7,6 +7,8 @@ import translators.server as tss
 import wx
 import threading
 
+APP_EXIT = 1
+
 class Translator():
     def get_lines(self, x1, y1, x2, y2):
         bbox = (x1, y1, x2, y2)
@@ -42,14 +44,41 @@ class Translator():
 class DesktopController(wx.Frame):
     def __init__(self, parent, title):
         super(DesktopController, self).__init__(parent, title=title)
+        self.InitUI()
+
+    def InitUI(self):
         self.SetTransparent(200)
-        self.button = wx.Button(self, label="Start", size=(200,100))
+
+        #MenuBar
+        menubar = wx.MenuBar()
+        fileMenu = wx.Menu()
+        qmi = wx.MenuItem(fileMenu, APP_EXIT, '&Quit\tCtrl+Q')
+
+        img = wx.Image('./assets/exit.png', wx.BITMAP_TYPE_PNG)
+        img = img.Scale(16, 16, wx.IMAGE_QUALITY_HIGH)
+        qmi.SetBitmap(wx.Bitmap(img))
         
+        fileMenu.Append(qmi)
+
+        self.Bind(wx.EVT_MENU, self.OnQuit, id=APP_EXIT)
+
+        menubar.Append(fileMenu, '&File')
+        self.SetMenuBar(menubar)
+
+        self.SetSize((350, 250))
+        self.SetTitle('Icons and shortcuts')
+        self.Centre()
+        #MenuBar
+
+        #Button-OCR
+        self.button = wx.Button(self, label="", size=(200,100))
         self.Bind(wx.EVT_BUTTON, self.on_button_click, self.button)
+        
 
         self.SetPosition(wx.Point(0,0))
         self.Show()
     
+    #OCR FUNCTION
     def on_button_click(self, event):
         size = self.button.Size
         x1,y1 = self.button.GetScreenPosition()
@@ -59,8 +88,15 @@ class DesktopController(wx.Frame):
         t = threading.Thread(target=Translator().start_reading, args=(x1, y1, x2, y2))
         t.daemon = True
         t.start()
+    #OCR FUNCTION
+
+    def OnQuit(self, e):
+        self.Close()
+
+def main():
+    app = wx.App()
+    mf = DesktopController(None, title="OCR Translator")
+    app.MainLoop()
 
 if __name__ == '__main__':
-    app = wx.App()
-    mf = DesktopController(None, title="Selecciona un area")
-    app.MainLoop()
+    main()
