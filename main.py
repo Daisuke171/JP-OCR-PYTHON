@@ -52,34 +52,49 @@ class DesktopController(wx.Frame):
         self.translator = None
         self.ocr_thread = None
         self.running = False
-        self.InitUI()
+        self.init_ui()
 
-    def InitUI(self):
+    def init_ui(self):
+        # Set window transparency (0-255, where 255 is fully opaque)
         self.SetTransparent(200)
-
-        # MenuBar
-        menubar = wx.MenuBar()
-        fileMenu = wx.Menu()
-        qmi = wx.MenuItem(fileMenu, APP_EXIT, '&Quit\tCtrl+Q')
-
-        img = wx.Image('./assets/exit.png', wx.BITMAP_TYPE_PNG)
-        img = img.Scale(16, 16, wx.IMAGE_QUALITY_HIGH)
-        qmi.SetBitmap(wx.Bitmap(img))
-
-        fileMenu.Append(qmi)
-        self.Bind(wx.EVT_MENU, self.OnQuit, id=APP_EXIT)
-
-        menubar.Append(fileMenu, '&File')
-        self.SetMenuBar(menubar)
-
-        self.SetSize((350, 250))
-        self.SetTitle('JP OCR')
-        self.Centre()
-
-        # Button-OCR
-        self.button = wx.Button(self, label="", size=(200,100))
+        
+        # Create main panel
+        panel = wx.Panel(self)
+        
+        # Create horizontal sizer for side-by-side layout
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        # Create OCR button with descriptive label
+        self.button = wx.Button(panel, label="Start OCR")
         self.Bind(wx.EVT_BUTTON, self.on_button_click, self.button)
-        self.SetPosition(wx.Point(0,0))
+        
+        # Create message text box (multiline, read-only)
+        self.message_box = wx.TextCtrl(panel, 
+                                    style=wx.TE_MULTILINE | wx.TE_READONLY,
+                                    value="Ready to start OCR...")
+        
+        # Add button to left side - takes up available space
+        sizer.Add(self.button, 1, wx.EXPAND)
+        
+        # Add message box to right side - takes up available space  
+        sizer.Add(self.message_box, 1, wx.EXPAND)
+        
+        # Set sizer for panel
+        panel.SetSizer(sizer)
+        
+        # Fit the frame to its contents
+        sizer.Fit(self)
+        
+        # Center the window on screen instead of positioning at (0,0)
+        self.Center()
+        
+        # Optional: Set minimum size
+        self.SetMinSize(self.GetSize())
+        
+        # Refresh layout
+        self.Layout()
+        
+        # Show the window
         self.Show()
 
     def on_button_click(self, event):
