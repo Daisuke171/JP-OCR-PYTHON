@@ -8,8 +8,9 @@ import threading
 APP_EXIT = 1
 
 class Translator():
-    def __init__(self):
+    def __init__(self, callback=None):
         self.stop_translating = False
+        self.callback = callback
 
     def get_lines(self, x1, y1, x2, y2):
         bbox = (x1, y1, x2, y2)
@@ -33,8 +34,21 @@ class Translator():
             new_lines = self.get_lines(x1, y1, x2, y2)
 
             if lines != new_lines:
-                os.system('cls' if os.name == 'nt' else 'clear')
                 lines = new_lines
+                
+                # Build the display text
+                display_text = ""
+                for line in lines:
+                    display_text += '🗨️   ' + line + '\n'
+                    display_text += '👀   ' + katsu.romaji(line) + '\n'
+                    display_text += "---------------------------------\n"
+                
+                # Update GUI through callback
+                if self.callback:
+                    wx.CallAfter(self.callback, display_text)
+                
+                # Also print to console (optional)
+                os.system('cls' if os.name == 'nt' else 'clear')
                 for line in lines:
                     print('🗨️   ' + line)
                     print('👀   ' + katsu.romaji(line))
@@ -65,13 +79,13 @@ class DesktopController(wx.Frame):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         # Create OCR button with descriptive label
-        self.button = wx.Button(panel, label="Start OCR")
+        self.button = wx.Button(panel, label="")
         self.Bind(wx.EVT_BUTTON, self.on_button_click, self.button)
         
         # Create message text box (multiline, read-only)
         self.message_box = wx.TextCtrl(panel, 
                                     style=wx.TE_MULTILINE | wx.TE_READONLY,
-                                    value="Ready to start OCR...")
+                                    value="")
         
         # Add button to left side - takes up available space
         sizer.Add(self.button, 1, wx.EXPAND)
@@ -94,8 +108,17 @@ class DesktopController(wx.Frame):
         # Refresh layout
         self.Layout()
         
+        icon = wx.Icon("./assets/favicon.ico", wx.BITMAP_TYPE_ICO) 
+        self.SetIcon(icon)
+        
         # Show the window
         self.Show()
+
+    def update_message_box(self, text):
+        # Callback function to update the message box with OCR results
+        self.message_box.SetValue(text)
+        # Scroll to the end to show the latest text
+        self.message_box.SetInsertionPointEnd()
 
     def on_button_click(self, event):
         if not self.running:
@@ -104,7 +127,7 @@ class DesktopController(wx.Frame):
             x1, y1 = self.button.GetScreenPosition()
             x2, y2 = x1 + size[0], y1 + size[1]
 
-            self.translator = Translator()
+            self.translator = Translator(callback=self.update_message_box)
             self.ocr_thread = threading.Thread(
                 target=self.translator.start_reading, args=(x1, y1, x2, y2)
             )
@@ -117,6 +140,7 @@ class DesktopController(wx.Frame):
             if self.translator:
                 self.translator.stop()
             self.running = False
+
 
     def OnQuit(self, e):
         if self.translator:
